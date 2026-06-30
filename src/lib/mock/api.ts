@@ -103,6 +103,74 @@ export const api = {
     await delay();
     return db.seekerProfiles.find((s) => s.userId === userId) ?? null;
   },
+  async getUserDetail(userId: string) {
+    await delay();
+    const u = db.users.find((x) => x._id === userId);
+    if (!u) throw new Error("Not found");
+    if (u.role === "seeker") {
+      const p = db.seekerProfiles.find((s) => s.userId === userId);
+      const apps = db.applications.filter((a) => a.seekerId === userId);
+      return {
+        kind: "seeker" as const,
+        user: u,
+        profile: p
+          ? {
+              ...p,
+              bio: `${p.headline} with ${p.experienceYears}+ years across ${p.skills.slice(0, 3).join(", ")}.`,
+              gender: p.experienceYears % 2 === 0 ? "male" : "female",
+              dob: new Date(Date.now() - (22 + (p.experienceYears % 10)) * 365 * 86400000).toISOString(),
+              category: "Software Development",
+              languages: [
+                { lang: "English", level: "Fluent" },
+                { lang: "Malayalam", level: "Native" },
+              ],
+              education: [
+                { institution: "IGNOU", degree: "BCA", fieldOfStudy: "Computer Applications", startDate: "2022-07-01", endDate: "2025-06-30" },
+              ],
+              certificates: [
+                { name: "Meta Front-End Developer", issuer: "Coursera", issueDate: "2024-12-15", certUrl: "https://coursera.org/verify/123" },
+                { name: "AWS Cloud Practitioner", issuer: "Amazon", issueDate: "2025-04-02", certUrl: "https://aws.amazon.com/verify/abc" },
+              ],
+              experience: [
+                { company: "Acme Corp", title: p.headline ?? "Engineer", location: p.location ?? "Remote", startDate: "2022-07-01", endDate: "2025-06-30", description: `Worked on production systems delivering features at scale.` },
+                { company: "Lumen AI", title: "Junior " + (p.headline ?? "Engineer"), location: "Bengaluru", startDate: "2020-06-01", endDate: "2022-06-30", description: "Foundational engineering across the product surface." },
+              ],
+              achievements: "Winner of Hack This Fall 2025",
+            }
+          : null,
+        stats: {
+          applications: apps.length,
+          hired: apps.filter((a) => a.status === "Hired").length,
+          shortlisted: apps.filter((a) => a.status === "Shortlisted").length,
+        },
+        recentApplications: apps.slice(0, 6),
+      };
+    }
+    const b = db.businessProfiles.find((x) => x.userId === userId);
+    const jobs = b ? db.jobs.filter((j) => j.companyId === b._id) : [];
+    return {
+      kind: "business" as const,
+      user: u,
+      profile: b
+        ? {
+            ...b,
+            description: `${b.companyName} is a leading ${b.industry.toLowerCase()} firm hiring across multiple roles.`,
+            businessEmail: `contact@${b.companyName.toLowerCase().replace(/[^a-z]/g, "")}.com`,
+            ownerNumber: u.phone,
+            businessPhone: "0495-223344",
+            employeeCount: "10-50",
+            address: { street: "Cyberpark Road", locality: "Calicut", city: "Calicut", state: "Kerala", zip: "673016" },
+            logo: undefined,
+          }
+        : null,
+      stats: {
+        totalJobs: jobs.length,
+        openJobs: jobs.filter((j) => j.status === "Open").length,
+        applications: jobs.reduce((n, j) => n + j.applicationCount, 0),
+      },
+      recentJobs: jobs.slice(0, 6),
+    };
+  },
 
   async listBusinesses(p: QueryParams) {
     await delay();
