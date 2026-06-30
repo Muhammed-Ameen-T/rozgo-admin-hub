@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/users")({
 
 function UsersPage() {
   const qc = useQueryClient();
-  const [selected, setSelected] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   const toggleBlock = useMutation({
     mutationFn: (id: string) => api.toggleUserBlock(id),
@@ -89,15 +89,12 @@ function UsersPage() {
           { key: "role", label: "Roles", options: [{ value: "seeker", label: "Seekers" }, { value: "business", label: "Businesses" }, { value: "admin", label: "Admins" }] },
           { key: "isBlocked", label: "Status", options: [{ value: "false", label: "Active" }, { value: "true", label: "Blocked" }] },
         ]}
-        onRowClick={(r) => setSelected(r)}
+        onRowClick={(r) => navigate({ to: "/users/$id", params: { id: r._id } })}
       />
-
-      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          {selected && <UserDetail user={selected} onClose={() => setSelected(null)} />}
-        </SheetContent>
-      </Sheet>
     </div>
+  );
+}
+
   );
 }
 
