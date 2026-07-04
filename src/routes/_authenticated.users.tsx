@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCircle2, ShieldX, Mail } from "lucide-react";
@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/users")({
 function UsersPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isDetailRoute = pathname !== "/users" && pathname.startsWith("/users/");
 
   const toggleBlock = useMutation({
     mutationFn: (id: string) => api.toggleUserBlock(id),
@@ -71,6 +73,10 @@ function UsersPage() {
       ),
     },
   ];
+
+  if (isDetailRoute) {
+    return <Outlet />;
+  }
 
   return (
     <div className="space-y-4">
