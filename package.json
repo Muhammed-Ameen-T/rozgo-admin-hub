@@ -83,5 +83,19 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16"
-  }
+  },
+  "version": "1.0.0",
+  "description": "",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Muhammed-Ameen-T/rozgo-admin-hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Muhammed-Ameen-T/rozgo-admin-hub/issues"
+  },
+  "homepage": "https://github.com/Muhammed-Ameen-T/rozgo-admin-hub#readme"
 }
