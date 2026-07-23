@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Page, QueryParams } from "@/lib/mock/types";
@@ -46,14 +46,98 @@ export function DataGrid<T extends { _id: string }>({
   onRowClick,
   toolbar,
 }: DataGridProps<T>) {
-  const [params, setParams] = useState<QueryParams>({
-    page: 1,
-    pageSize: initialPageSize,
-    search: "",
-    sortBy: initialSort?.sortBy,
-    sortDir: initialSort?.sortDir ?? "asc",
-    filters: {},
+  const [params, setParams] = useState<QueryParams>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const page = urlParams.get("page") ? Number(urlParams.get("page")) : 1;
+      const pageSize = urlParams.get("pageSize") ? Number(urlParams.get("pageSize")) : initialPageSize;
+      const search = urlParams.get("search") ?? "";
+      const sortBy = urlParams.get("sortBy") ?? initialSort?.sortBy;
+      const sortDir = (urlParams.get("sortDir") as "asc" | "desc") ?? initialSort?.sortDir ?? "asc";
+      
+      const parsedFilters: Record<string, string> = {};
+      filters.forEach((f) => {
+        const val = urlParams.get(`f_${f.key}`);
+        if (val) {
+          parsedFilters[f.key] = val;
+        }
+      });
+
+      return {
+        page,
+        pageSize,
+        search,
+        sortBy,
+        sortDir,
+        filters: parsedFilters,
+      };
+    }
+
+    return {
+      page: 1,
+      pageSize: initialPageSize,
+      search: "",
+      sortBy: initialSort?.sortBy,
+      sortDir: initialSort?.sortDir ?? "asc",
+      filters: {},
+    };
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (params.page && params.page !== 1) {
+      urlParams.set("page", String(params.page));
+    } else {
+      urlParams.delete("page");
+    }
+
+    if (params.pageSize && params.pageSize !== initialPageSize) {
+      urlParams.set("pageSize", String(params.pageSize));
+    } else {
+      urlParams.delete("pageSize");
+    }
+
+    if (params.search && params.search.trim() !== "") {
+      urlParams.set("search", params.search);
+    } else {
+      urlParams.delete("search");
+    }
+
+    if (params.sortBy) {
+      urlParams.set("sortBy", params.sortBy);
+    } else {
+      urlParams.delete("sortBy");
+    }
+
+    if (params.sortDir && params.sortDir !== "asc") {
+      urlParams.set("sortDir", params.sortDir);
+    } else {
+      urlParams.delete("sortDir");
+    }
+
+    // Clear existing filters in URL
+    Array.from(urlParams.keys()).forEach((key) => {
+      if (key.startsWith("f_")) {
+        urlParams.delete(key);
+      }
+    });
+
+    // Write new filters
+    if (params.filters) {
+      Object.entries(params.filters).forEach(([key, val]) => {
+        if (val && val !== "all") {
+          urlParams.set(`f_${key}`, val);
+        }
+      });
+    }
+
+    const newSearch = urlParams.toString();
+    const newUrl = `${window.location.pathname}${newSearch ? `?${newSearch}` : ""}${window.location.hash}`;
+    window.history.replaceState({ ...window.history.state }, "", newUrl);
+  }, [params, initialPageSize]);
 
   const { data, isFetching, isLoading } = useQuery({
     queryKey: [...queryKey, params],
@@ -74,6 +158,10 @@ export function DataGrid<T extends { _id: string }>({
       sortDir: p.sortBy === key && p.sortDir === "asc" ? "desc" : "asc",
     }));
   };
+
+  const hasActiveFilters =
+    (params.search && params.search.trim() !== "") ||
+    (params.filters && Object.values(params.filters).some((v) => v && v !== "all"));
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-card shadow-sm">
@@ -109,6 +197,23 @@ export function DataGrid<T extends { _id: string }>({
               </SelectContent>
             </Select>
           ))}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setParams((p) => ({
+                  ...p,
+                  page: 1,
+                  search: "",
+                  filters: {},
+                }))
+              }
+              className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent"
+            >
+              Clear all
+            </Button>
+          )}
           {toolbar}
         </div>
       </div>

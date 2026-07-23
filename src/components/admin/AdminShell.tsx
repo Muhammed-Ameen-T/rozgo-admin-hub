@@ -15,6 +15,8 @@ import {
   Menu,
   X,
   Search,
+  Globe,
+  Scale,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,8 @@ const nav = [
   { to: "/knowledge-base", label: "Knowledge Base", icon: BookOpen },
   { to: "/subscriptions", label: "Subscriptions", icon: CreditCard },
   { to: "/notifications", label: "Broadcasts", icon: Bell },
+  { to: "/landing", label: "Landing Settings", icon: Globe },
+  { to: "/legal", label: "Legal Policies", icon: Scale },
   { to: "/audit-logs", label: "Audit Logs", icon: ShieldCheck },
 ] as const;
 

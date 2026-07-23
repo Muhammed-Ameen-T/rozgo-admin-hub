@@ -7,7 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Shield, Mail, Lock, ArrowRight, KeyRound } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { setSession } = useAuth();
   const [stage, setStage] = useState<"creds" | "otp">("creds");
-  const [session, setSessionId] = useState<{ sessionId: string; email: string } | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2">
@@ -77,15 +77,14 @@ function LoginPage() {
 
           {stage === "creds" ? (
             <CredentialsStep
-              onSuccess={(s) => {
-                setSessionId(s);
+              onSuccess={(userEmail) => {
+                setEmail(userEmail);
                 setStage("otp");
               }}
             />
           ) : (
             <OtpStep
-              email={session!.email}
-              sessionId={session!.sessionId}
+              email={email!}
               onSuccess={(token, user) => {
                 setSession(token, user);
                 toast.success("Welcome back");
@@ -96,7 +95,7 @@ function LoginPage() {
           )}
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            Protected by RozGo Trust. Use OTP <span className="font-mono font-medium">123456</span> for demo.
+            Protected by RozGo Trust.
           </p>
         </div>
       </div>
@@ -104,15 +103,21 @@ function LoginPage() {
   );
 }
 
-function CredentialsStep({ onSuccess }: { onSuccess: (s: { sessionId: string; email: string }) => void }) {
+function CredentialsStep({ onSuccess }: { onSuccess: (email: string) => void }) {
   const form = useForm<CredForm>({
     resolver: zodResolver(credSchema),
     mode: "onBlur",
-    defaultValues: { email: "admin@rozgo.com", password: "demo1234" },
+    defaultValues: { email: "", password: "" },
   });
   const mutation = useMutation({
-    mutationFn: ({ email, password }: CredForm) => api.login(email, password),
-    onSuccess: (s) => onSuccess(s),
+    mutationFn: async ({ email, password }: CredForm) => {
+      const response = await api.post("/auth/admin/login", { email, password });
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || "Failed to log in");
+      }
+      return email;
+    },
+    onSuccess: (email) => onSuccess(email),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -130,7 +135,7 @@ function CredentialsStep({ onSuccess }: { onSuccess: (s: { sessionId: string; em
           <Label htmlFor="email">Work email</Label>
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="email" type="email" autoComplete="username" className="pl-9" {...form.register("email")} />
+            <Input id="email" type="email" placeholder="name@company.com" autoComplete="username" className="pl-9" {...form.register("email")} />
           </div>
           {form.formState.errors.email && (
             <p className="text-xs font-medium text-destructive">{form.formState.errors.email.message}</p>
@@ -140,7 +145,7 @@ function CredentialsStep({ onSuccess }: { onSuccess: (s: { sessionId: string; em
           <Label htmlFor="password">Password</Label>
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="password" type="password" autoComplete="current-password" className="pl-9" {...form.register("password")} />
+            <Input id="password" type="password" placeholder="••••••••" autoComplete="current-password" className="pl-9" {...form.register("password")} />
           </div>
           {form.formState.errors.password && (
             <p className="text-xs font-medium text-destructive">{form.formState.errors.password.message}</p>
@@ -157,13 +162,11 @@ function CredentialsStep({ onSuccess }: { onSuccess: (s: { sessionId: string; em
 
 function OtpStep({
   email,
-  sessionId,
   onSuccess,
   onBack,
 }: {
   email: string;
-  sessionId: string;
-  onSuccess: (token: string, user: { name: string; email: string; role: "admin" }) => void;
+  onSuccess: (token: string, user: { id: string; name: string; email: string; role: "admin" }) => void;
   onBack: () => void;
 }) {
   const [seconds, setSeconds] = useState(60);
@@ -178,8 +181,29 @@ function OtpStep({
 
   const form = useForm<OtpForm>({ resolver: zodResolver(otpSchema), mode: "onBlur" });
   const mutation = useMutation({
-    mutationFn: ({ otp }: OtpForm) => api.verifyOtp(sessionId, otp),
-    onSuccess: (res) => onSuccess(res.token, res.user),
+    mutationFn: async ({ otp }: OtpForm) => {
+      const response = await api.post("/auth/admin/verify-otp", { email, otp });
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || "Invalid OTP");
+      }
+      return response.data.data;
+    },
+    onSuccess: (res) => onSuccess(res.accessToken, res.user),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/auth/admin/resend-otp", { email });
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || "Failed to resend OTP");
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      setSeconds(60);
+      toast.success("A new verification code has been sent.");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -217,11 +241,11 @@ function OtpStep({
             </span>
             <button
               type="button"
-              disabled={seconds > 0}
-              onClick={() => setSeconds(60)}
+              disabled={seconds > 0 || resendMutation.isPending}
+              onClick={() => resendMutation.mutate()}
               className="font-medium text-primary disabled:cursor-not-allowed disabled:text-muted-foreground"
             >
-              Resend code
+              {resendMutation.isPending ? "Resending..." : "Resend code"}
             </button>
           </div>
         </div>

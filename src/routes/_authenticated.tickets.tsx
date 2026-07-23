@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Send, X } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { SupportTicket } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -44,7 +44,10 @@ function TicketsPage() {
 
       <DataGrid<SupportTicket>
         queryKey={["tickets"]}
-        fetchPage={(p) => api.listTickets(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/tickets", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search by subject, user, category…"
         initialSort={{ sortBy: "createdAt", sortDir: "desc" }}
@@ -69,16 +72,28 @@ type ReplyForm = z.infer<typeof replySchema>;
 
 function TicketPanel({ id, onClose }: { id: string; onClose: () => void }) {
   const qc = useQueryClient();
-  const { data: ticket } = useQuery({ queryKey: ["ticket", id], queryFn: () => api.getTicket(id) });
+  const { data: ticket } = useQuery({
+    queryKey: ["ticket", id],
+    queryFn: async () => {
+      const response = await api.get(`/admin/tickets/${id}`);
+      return response.data.data;
+    }
+  });
 
   const update = useMutation({
-    mutationFn: (patch: Partial<Pick<SupportTicket, "status" | "priority" | "assignedTo">>) => api.updateTicket(id, patch),
+    mutationFn: async (patch: Partial<Pick<SupportTicket, "status" | "priority" | "assignedTo">>) => {
+      const response = await api.patch(`/admin/tickets/${id}`, patch);
+      return response.data.data;
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["ticket", id] }); qc.invalidateQueries({ queryKey: ["tickets"] }); toast.success("Ticket updated"); },
   });
 
   const form = useForm<ReplyForm>({ resolver: zodResolver(replySchema), mode: "onBlur", defaultValues: { body: "" } });
   const reply = useMutation({
-    mutationFn: (v: ReplyForm) => api.replyTicket(id, v.body),
+    mutationFn: async (v: ReplyForm) => {
+      const response = await api.post(`/admin/tickets/${id}/reply`, { message: v.body });
+      return response.data.data;
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["ticket", id] }); form.reset(); toast.success("Reply sent"); },
   });
 
@@ -120,7 +135,7 @@ function TicketPanel({ id, onClose }: { id: string; onClose: () => void }) {
       <div className="mt-6 space-y-3">
         <h4 className="text-sm font-semibold text-foreground">Conversation</h4>
         <div className="space-y-3">
-          {ticket.messages.map((m) => (
+          {ticket.messages.map((m: any) => (
             <div key={m._id} className={m.authorRole === "admin" ? "ml-6" : "mr-6"}>
               <div className={`rounded-lg border p-3 text-sm ${m.authorRole === "admin" ? "border-primary/20 bg-primary/5" : "border-border bg-card"}`}>
                 <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">

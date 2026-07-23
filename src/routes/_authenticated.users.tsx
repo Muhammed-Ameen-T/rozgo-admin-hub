@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCircle2, ShieldX, Mail } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { User } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -20,14 +20,20 @@ function UsersPage() {
   const isDetailRoute = pathname !== "/users" && pathname.startsWith("/users/");
 
   const toggleBlock = useMutation({
-    mutationFn: (id: string) => api.toggleUserBlock(id),
+    mutationFn: async (id: string) => {
+      const response = await api.patch(`/admin/users/${id}/block`);
+      return response.data.data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
       toast.success("Account lock updated");
     },
   });
   const toggleVerified = useMutation({
-    mutationFn: (id: string) => api.toggleUserVerified(id),
+    mutationFn: async (id: string) => {
+      const response = await api.patch(`/admin/users/${id}/verify`);
+      return response.data.data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
       toast.success("Verification status updated");
@@ -64,7 +70,8 @@ function UsersPage() {
       cell: (r) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <Button size="sm" variant="outline" onClick={() => toggleVerified.mutate(r._id)}>
-            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Verify
+            <CheckCircle2 className={`mr-1 h-3.5 w-3.5 ${r.isVerified ? "text-emerald-500" : ""}`} /> 
+            {r.isVerified ? "Unverify" : "Verify"}
           </Button>
           <Button size="sm" variant={r.isBlocked ? "outline" : "destructive"} onClick={() => toggleBlock.mutate(r._id)}>
             <ShieldX className="mr-1 h-3.5 w-3.5" /> {r.isBlocked ? "Unblock" : "Block"}
@@ -87,7 +94,10 @@ function UsersPage() {
 
       <DataGrid<User>
         queryKey={["users"]}
-        fetchPage={(p) => api.listUsers(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/users", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search by name, email, phone…"
         initialSort={{ sortBy: "createdAt", sortDir: "desc" }}

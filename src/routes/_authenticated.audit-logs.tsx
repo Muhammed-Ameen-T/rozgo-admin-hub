@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { X } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { AuditLog } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -33,7 +33,10 @@ function AuditPage() {
 
       <DataGrid<AuditLog>
         queryKey={["audit"]}
-        fetchPage={(p) => api.listAudit(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/audit-logs", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search by action, entity, user, IP…"
         initialSort={{ sortBy: "createdAt", sortDir: "desc" }}

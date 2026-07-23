@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Briefcase, X, Clock, MapPin } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { Application, Job } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -52,7 +52,10 @@ function JobsPage() {
 
       <DataGrid<Job>
         queryKey={["jobs"]}
-        fetchPage={(p) => api.listJobs(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/jobs", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search by title, company, category…"
         initialSort={{ sortBy: "createdAt", sortDir: "desc" }}
@@ -95,7 +98,10 @@ function ApplicationsPanel({ jobId, onPickApp }: { jobId: string; onPickApp: (id
       <div className="mt-6">
         <DataGrid<Application>
           queryKey={["applications", jobId]}
-          fetchPage={(p) => api.listApplications({ ...p, jobId })}
+          fetchPage={async (p) => {
+            const response = await api.get("/admin/applications", { params: { ...p, jobId } });
+            return response.data.data;
+          }}
           columns={columns}
           searchPlaceholder="Search applicants…"
           initialSort={{ sortBy: "createdAt", sortDir: "desc" }}
@@ -108,7 +114,13 @@ function ApplicationsPanel({ jobId, onPickApp }: { jobId: string; onPickApp: (id
 }
 
 function ApplicationDetail({ id, onClose }: { id: string; onClose: () => void }) {
-  const { data } = useQuery({ queryKey: ["application", id], queryFn: () => api.getApplication(id) });
+  const { data } = useQuery({
+    queryKey: ["application", id],
+    queryFn: async () => {
+      const response = await api.get(`/admin/applications/${id}`);
+      return response.data.data;
+    }
+  });
   if (!data) return <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>;
   return (
     <>
@@ -134,7 +146,7 @@ function ApplicationDetail({ id, onClose }: { id: string; onClose: () => void })
         <section>
           <h4 className="text-sm font-semibold text-foreground">Status history</h4>
           <ol className="mt-3 space-y-3 border-l border-border pl-5">
-            {data.statusHistory.map((s, i) => (
+            {data.statusHistory.map((s: any, i: number) => (
               <li key={i} className="relative">
                 <span className="absolute -left-[26px] top-1 grid h-4 w-4 place-items-center rounded-full bg-primary text-[10px] text-primary-foreground">{i + 1}</span>
                 <div className="flex items-center gap-2">

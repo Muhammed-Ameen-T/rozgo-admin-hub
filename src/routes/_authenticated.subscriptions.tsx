@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Pencil, Plus, X, Check } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { Subscription, SubscriptionPlan } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -75,7 +75,10 @@ function PlansTab() {
       </div>
       <DataGrid<SubscriptionPlan>
         queryKey={["plans"]}
-        fetchPage={(p) => api.listPlans(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/plans", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search plans…"
         initialSort={{ sortBy: "price", sortDir: "asc" }}
@@ -103,12 +106,15 @@ function PlanForm({ initial, onClose }: { initial: Partial<SubscriptionPlan>; on
     },
   });
   const save = useMutation({
-    mutationFn: (v: PlanForm) => api.savePlan({
-      _id: initial._id,
-      name: v.name, price: v.price, currency: v.currency.toUpperCase(),
-      billingCycle: v.billingCycle, isActive: v.isActive,
-      features: v.featuresText.split("\n").map((s) => s.trim()).filter(Boolean),
-    }),
+    mutationFn: async (v: PlanForm) => {
+      const response = await api.post("/admin/plans", {
+        _id: initial._id,
+        name: v.name, price: v.price, currency: v.currency.toUpperCase(),
+        billingCycle: v.billingCycle, isActive: v.isActive,
+        features: v.featuresText.split("\n").map((s) => s.trim()).filter(Boolean),
+      });
+      return response.data.data;
+    },
     onSuccess: () => { toast.success("Plan saved"); onClose(); },
   });
 
@@ -182,7 +188,10 @@ function LedgerTab() {
   return (
     <DataGrid<Subscription>
       queryKey={["subscriptions"]}
-      fetchPage={(p) => api.listSubscriptions(p)}
+      fetchPage={async (p) => {
+        const response = await api.get("/admin/subscriptions", { params: p });
+        return response.data.data;
+      }}
       columns={columns}
       searchPlaceholder="Search by user, plan, transaction…"
       initialSort={{ sortBy: "startDate", sortDir: "desc" }}

@@ -16,6 +16,8 @@ import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedTicketsRouteImport } from './routes/_authenticated.tickets'
 import { Route as AuthenticatedSubscriptionsRouteImport } from './routes/_authenticated.subscriptions'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated.notifications'
+import { Route as AuthenticatedLegalRouteImport } from './routes/_authenticated.legal'
+import { Route as AuthenticatedLandingRouteImport } from './routes/_authenticated.landing'
 import { Route as AuthenticatedKnowledgeBaseRouteImport } from './routes/_authenticated.knowledge-base'
 import { Route as AuthenticatedJobsRouteImport } from './routes/_authenticated.jobs'
 import { Route as AuthenticatedFaqsRouteImport } from './routes/_authenticated.faqs'
@@ -59,6 +61,16 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedLegalRoute = AuthenticatedLegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedLandingRoute = AuthenticatedLandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedKnowledgeBaseRoute =
   AuthenticatedKnowledgeBaseRouteImport.update({
     id: '/knowledge-base',
@@ -99,6 +111,8 @@ export interface FileRoutesByFullPath {
   '/faqs': typeof AuthenticatedFaqsRoute
   '/jobs': typeof AuthenticatedJobsRoute
   '/knowledge-base': typeof AuthenticatedKnowledgeBaseRoute
+  '/landing': typeof AuthenticatedLandingRoute
+  '/legal': typeof AuthenticatedLegalRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/tickets': typeof AuthenticatedTicketsRoute
@@ -112,6 +126,8 @@ export interface FileRoutesByTo {
   '/faqs': typeof AuthenticatedFaqsRoute
   '/jobs': typeof AuthenticatedJobsRoute
   '/knowledge-base': typeof AuthenticatedKnowledgeBaseRoute
+  '/landing': typeof AuthenticatedLandingRoute
+  '/legal': typeof AuthenticatedLegalRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/tickets': typeof AuthenticatedTicketsRoute
@@ -128,6 +144,8 @@ export interface FileRoutesById {
   '/_authenticated/faqs': typeof AuthenticatedFaqsRoute
   '/_authenticated/jobs': typeof AuthenticatedJobsRoute
   '/_authenticated/knowledge-base': typeof AuthenticatedKnowledgeBaseRoute
+  '/_authenticated/landing': typeof AuthenticatedLandingRoute
+  '/_authenticated/legal': typeof AuthenticatedLegalRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/_authenticated/tickets': typeof AuthenticatedTicketsRoute
@@ -145,6 +163,8 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/jobs'
     | '/knowledge-base'
+    | '/landing'
+    | '/legal'
     | '/notifications'
     | '/subscriptions'
     | '/tickets'
@@ -158,6 +178,8 @@ export interface FileRouteTypes {
     | '/faqs'
     | '/jobs'
     | '/knowledge-base'
+    | '/landing'
+    | '/legal'
     | '/notifications'
     | '/subscriptions'
     | '/tickets'
@@ -173,6 +195,8 @@ export interface FileRouteTypes {
     | '/_authenticated/faqs'
     | '/_authenticated/jobs'
     | '/_authenticated/knowledge-base'
+    | '/_authenticated/landing'
+    | '/_authenticated/legal'
     | '/_authenticated/notifications'
     | '/_authenticated/subscriptions'
     | '/_authenticated/tickets'
@@ -237,6 +261,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/legal': {
+      id: '/_authenticated/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof AuthenticatedLegalRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/landing': {
+      id: '/_authenticated/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof AuthenticatedLandingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/knowledge-base': {
       id: '/_authenticated/knowledge-base'
       path: '/knowledge-base'
@@ -299,6 +337,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFaqsRoute: typeof AuthenticatedFaqsRoute
   AuthenticatedJobsRoute: typeof AuthenticatedJobsRoute
   AuthenticatedKnowledgeBaseRoute: typeof AuthenticatedKnowledgeBaseRoute
+  AuthenticatedLandingRoute: typeof AuthenticatedLandingRoute
+  AuthenticatedLegalRoute: typeof AuthenticatedLegalRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedSubscriptionsRoute: typeof AuthenticatedSubscriptionsRoute
   AuthenticatedTicketsRoute: typeof AuthenticatedTicketsRoute
@@ -312,6 +352,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFaqsRoute: AuthenticatedFaqsRoute,
   AuthenticatedJobsRoute: AuthenticatedJobsRoute,
   AuthenticatedKnowledgeBaseRoute: AuthenticatedKnowledgeBaseRoute,
+  AuthenticatedLandingRoute: AuthenticatedLandingRoute,
+  AuthenticatedLegalRoute: AuthenticatedLegalRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedSubscriptionsRoute: AuthenticatedSubscriptionsRoute,
   AuthenticatedTicketsRoute: AuthenticatedTicketsRoute,

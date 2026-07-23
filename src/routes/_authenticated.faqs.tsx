@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { Faq } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -37,7 +37,10 @@ function FaqsPage() {
   const [editing, setEditing] = useState<Partial<Faq> | null>(null);
 
   const del = useMutation({
-    mutationFn: (id: string) => api.deleteFaq(id),
+    mutationFn: async (id: string) => {
+      const response = await api.delete(`/admin/faqs/${id}`);
+      return response.data.data;
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["faqs"] }); toast.success("FAQ deleted"); },
   });
 
@@ -66,7 +69,10 @@ function FaqsPage() {
 
       <DataGrid<Faq>
         queryKey={["faqs"]}
-        fetchPage={(p) => api.listFaqs(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/faqs", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search FAQs…"
         initialSort={{ sortBy: "order", sortDir: "asc" }}
@@ -100,7 +106,10 @@ function FaqForm({ initial, onClose }: { initial: Partial<Faq>; onClose: () => v
   });
 
   const save = useMutation({
-    mutationFn: (v: FormVals) => api.saveFaq({ _id: initial._id, ...v }),
+    mutationFn: async (v: FormVals) => {
+      const response = await api.post("/admin/faqs", { _id: initial._id, ...v });
+      return response.data.data;
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["faqs"] }); toast.success("FAQ saved"); onClose(); },
   });
 

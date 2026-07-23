@@ -6,7 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Send } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { Notification } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -42,10 +42,13 @@ function NotificationsPage() {
     defaultValues: { title: "", body: "", recipientType: "all", systemType: "info", targets: "" },
   });
   const send = useMutation({
-    mutationFn: (v: Form) => api.sendNotification({
-      title: v.title, body: v.body, recipientType: v.recipientType, systemType: v.systemType,
-      targets: (v.targets ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-    }),
+    mutationFn: async (v: Form) => {
+      const response = await api.post("/admin/notifications/broadcast", {
+        title: v.title, body: v.body, recipientType: v.recipientType, systemType: v.systemType,
+        targets: (v.targets ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+      });
+      return response.data.data;
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["notifications"] }); toast.success("Notification dispatched"); form.reset(); },
   });
 
@@ -114,7 +117,10 @@ function NotificationsPage() {
         <div>
           <DataGrid<Notification>
             queryKey={["notifications"]}
-            fetchPage={(p) => api.listNotifications(p)}
+            fetchPage={async (p) => {
+              const response = await api.get("/admin/notifications", { params: p });
+              return response.data.data;
+            }}
             columns={columns}
             searchPlaceholder="Search notifications…"
             initialSort={{ sortBy: "sentAt", sortDir: "desc" }}

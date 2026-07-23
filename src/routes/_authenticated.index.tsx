@@ -35,7 +35,8 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { api } from "@/lib/mock/api";
+import { api as mockApi } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import { StatusPill } from "@/components/admin/StatusPill";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -55,17 +56,53 @@ const ROLE_COLORS = ["#10b981", "#0ea5e9", "#f59e0b"];
 const CATEGORY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6", "#ef4444"];
 
 function DashboardPage() {
-  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: api.stats });
-  const { data: trends } = useQuery({ queryKey: ["trends"], queryFn: api.chartTrends });
-  const { data: jobs } = useQuery({ queryKey: ["dash-jobs"], queryFn: () => api.listJobs({ page: 1, pageSize: 200 }) });
-  const { data: users } = useQuery({ queryKey: ["dash-users"], queryFn: () => api.listUsers({ page: 1, pageSize: 200 }) });
-  const { data: tickets } = useQuery({ queryKey: ["dash-tickets"], queryFn: () => api.listTickets({ page: 1, pageSize: 200 }) });
-  const { data: audit } = useQuery({ queryKey: ["dash-audit"], queryFn: () => api.listAudit({ page: 1, pageSize: 8, sortBy: "createdAt", sortDir: "desc" }) });
+  const { data: stats } = useQuery({
+    queryKey: ["stats"],
+    queryFn: async () => {
+      const res = await api.get("/admin/stats");
+      return res.data.data;
+    }
+  });
+  const { data: trends } = useQuery({
+    queryKey: ["trends"],
+    queryFn: async () => {
+      const res = await api.get("/admin/chart-trends");
+      return res.data.data;
+    }
+  });
+  const { data: jobs } = useQuery({
+    queryKey: ["dash-jobs"],
+    queryFn: async () => {
+      const response = await api.get("/admin/jobs", { params: { page: 1, pageSize: 200 } });
+      return response.data.data;
+    }
+  });
+  const { data: users } = useQuery({
+    queryKey: ["dash-users"],
+    queryFn: async () => {
+      const res = await api.get("/admin/users", { params: { page: 1, pageSize: 200 } });
+      return res.data.data;
+    }
+  });
+  const { data: tickets } = useQuery({
+    queryKey: ["dash-tickets"],
+    queryFn: async () => {
+      const response = await api.get("/admin/tickets", { params: { page: 1, pageSize: 200 } });
+      return response.data.data;
+    }
+  });
+  const { data: audit } = useQuery({
+    queryKey: ["dash-audit"],
+    queryFn: async () => {
+      const response = await api.get("/admin/audit-logs", { params: { page: 1, pageSize: 8, sortBy: "createdAt", sortDir: "desc" } });
+      return response.data.data;
+    }
+  });
 
   const roleDist = (() => {
     if (!users) return [];
     const counts: Record<string, number> = { seeker: 0, business: 0, admin: 0 };
-    users.data.forEach((u) => (counts[u.role] = (counts[u.role] ?? 0) + 1));
+    users.data.forEach((u: any) => (counts[u.role] = (counts[u.role] ?? 0) + 1));
     return [
       { name: "Seekers", value: counts.seeker },
       { name: "Businesses", value: counts.business },
@@ -76,14 +113,14 @@ function DashboardPage() {
   const jobCategories = (() => {
     if (!jobs) return [];
     const counts: Record<string, number> = {};
-    jobs.data.forEach((j) => (counts[j.category] = (counts[j.category] ?? 0) + 1));
+    jobs.data.forEach((j: any) => (counts[j.category] = (counts[j.category] ?? 0) + 1));
     return Object.entries(counts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 8);
   })();
 
   const ticketsByPriority = (() => {
     if (!tickets) return [];
     const counts: Record<string, number> = { Low: 0, Medium: 0, High: 0, Critical: 0 };
-    tickets.data.forEach((t) => (counts[t.priority] = (counts[t.priority] ?? 0) + 1));
+    tickets.data.forEach((t: any) => (counts[t.priority] = (counts[t.priority] ?? 0) + 1));
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   })();
 
@@ -348,7 +385,7 @@ function DashboardPage() {
             </Link>
           </div>
           <ul className="mt-4 divide-y divide-border">
-            {(audit?.data ?? []).map((a) => (
+            {(audit?.data ?? []).map((a: any) => (
               <li key={a._id} className="flex items-start gap-3 py-3 text-sm">
                 <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                   {a.userName.slice(0, 1)}

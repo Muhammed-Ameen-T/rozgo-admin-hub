@@ -21,7 +21,8 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
+import { api as mockApi } from "@/lib/mock/api";
 import { StatusPill } from "@/components/admin/StatusPill";
 import { Button } from "@/components/ui/button";
 
@@ -34,11 +35,17 @@ function UserDetailPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["user-detail", id],
-    queryFn: () => api.getUserDetail(id),
+    queryFn: async () => {
+      const response = await api.get(`/admin/users/${id}`);
+      return response.data.data;
+    },
   });
 
   const toggleBlock = useMutation({
-    mutationFn: () => api.toggleUserBlock(id),
+    mutationFn: async () => {
+      const response = await api.patch(`/admin/users/${id}/block`);
+      return response.data.data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["user-detail", id] });
       qc.invalidateQueries({ queryKey: ["users"] });
@@ -46,7 +53,10 @@ function UserDetailPage() {
     },
   });
   const toggleVerified = useMutation({
-    mutationFn: () => api.toggleUserVerified(id),
+    mutationFn: async () => {
+      const response = await api.patch(`/admin/users/${id}/verify`);
+      return response.data.data;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["user-detail", id] });
       qc.invalidateQueries({ queryKey: ["users"] });
@@ -65,7 +75,7 @@ function UserDetailPage() {
   }
 
   const { user } = data;
-  const initials = user.fullName.split(" ").map((s) => s[0]).join("").slice(0, 2);
+  const initials = user.fullName.split(" ").filter(Boolean).map((s: string) => s[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -76,35 +86,37 @@ function UserDetailPage() {
       {/* Identity header */}
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="h-24 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700" />
-        <div className="-mt-12 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 px-6 pb-6 sm:flex sm:flex-wrap sm:justify-between">
-          <div className="flex min-w-0 items-end gap-4">
-            <div className="grid h-24 w-24 shrink-0 place-items-center rounded-2xl border-4 border-card bg-primary text-2xl font-bold text-primary-foreground shadow-md">
+        <div className="-mt-12 flex flex-col md:flex-row md:items-end justify-between gap-6 px-6 pb-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-left min-w-0">
+            <div className="grid h-24 w-24 shrink-0 place-items-center rounded-2xl border-4 border-card bg-primary text-2xl font-bold text-primary-foreground shadow-md select-none">
               {initials}
             </div>
-            <div className="min-w-0 pb-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-2xl font-semibold text-foreground">{user.fullName}</h1>
-                <StatusPill tone={user.role === "business" ? "info" : "muted"}>{user.role}</StatusPill>
-                {user.isVerified ? (
-                  <StatusPill tone="success"><ShieldCheck className="h-3 w-3" /> Verified</StatusPill>
-                ) : (
-                  <StatusPill tone="warning">Pending verification</StatusPill>
-                )}
-                {user.isBlocked && <StatusPill tone="danger"><ShieldX className="h-3 w-3" /> Blocked</StatusPill>}
+            <div className="min-w-0 space-y-1.5">
+              <div className="space-y-1.5 text-center sm:text-left">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">{user.fullName}</h1>
+                <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+                  <StatusPill tone={user.role === "business" ? "info" : "muted"}>{user.role}</StatusPill>
+                  {user.isVerified ? (
+                    <StatusPill tone="success"><ShieldCheck className="mr-0.5 h-3 w-3 inline" /> Verified</StatusPill>
+                  ) : (
+                    <StatusPill tone="warning">Pending verification</StatusPill>
+                  )}
+                  {user.isBlocked && <StatusPill tone="danger"><ShieldX className="mr-0.5 h-3 w-3 inline" /> Blocked</StatusPill>}
+                </div>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {user.email}</span>
-                {user.phone && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {user.phone}</span>}
-                <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-sm text-muted-foreground pt-1">
+                <span className="flex items-center gap-1.5"><Mail className="h-4 w-4 shrink-0" /> {user.email}</span>
+                {user.phone && <span className="flex items-center gap-1.5"><Phone className="h-4 w-4 shrink-0" /> {user.phone}</span>}
+                <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 shrink-0" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 pb-1">
-            <Button size="sm" variant="outline" onClick={() => toggleVerified.mutate()}>
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> {user.isVerified ? "Unverify" : "Verify"}
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 shrink-0">
+            <Button size="sm" variant="outline" onClick={() => toggleVerified.mutate()} className="h-9">
+              <CheckCircle2 className="mr-1 h-4 w-4 text-emerald-500" /> {user.isVerified ? "Unverify" : "Verify"}
             </Button>
-            <Button size="sm" variant={user.isBlocked ? "outline" : "destructive"} onClick={() => toggleBlock.mutate()}>
-              <ShieldX className="mr-1 h-3.5 w-3.5" /> {user.isBlocked ? "Unblock" : "Block"}
+            <Button size="sm" variant={user.isBlocked ? "outline" : "destructive"} onClick={() => toggleBlock.mutate()} className="h-9">
+              <ShieldX className="mr-1 h-4 w-4" /> {user.isBlocked ? "Unblock" : "Block"}
             </Button>
           </div>
         </div>
@@ -115,8 +127,8 @@ function UserDetailPage() {
   );
 }
 
-type SeekerData = Extract<Awaited<ReturnType<typeof api.getUserDetail>>, { kind: "seeker" }>;
-type BusinessData = Extract<Awaited<ReturnType<typeof api.getUserDetail>>, { kind: "business" }>;
+type SeekerData = Extract<Awaited<ReturnType<typeof mockApi.getUserDetail>>, { kind: "seeker" }>;
+type BusinessData = Extract<Awaited<ReturnType<typeof mockApi.getUserDetail>>, { kind: "business" }>;
 
 function SectionCard({ title, icon: Icon, children, actions }: { title: string; icon: React.ElementType; children: React.ReactNode; actions?: React.ReactNode }) {
   return (

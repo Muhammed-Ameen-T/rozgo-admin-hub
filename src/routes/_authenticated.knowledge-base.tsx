@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2, X, Image as ImageIcon, Video } from "lucide-react";
 
-import { api } from "@/lib/mock/api";
+import { api } from "@/config/axios.config";
 import type { KnowledgeArticle } from "@/lib/mock/types";
 import { DataGrid, type GridColumn } from "@/components/admin/DataGrid";
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -38,7 +38,10 @@ function KbPage() {
   const [editing, setEditing] = useState<Partial<KnowledgeArticle> | null>(null);
 
   const del = useMutation({
-    mutationFn: (id: string) => api.deleteKb(id),
+    mutationFn: async (id: string) => {
+      const response = await api.delete(`/admin/knowledge-base/${id}`);
+      return response.data.data;
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["kb"] }); toast.success("Article deleted"); },
   });
 
@@ -68,7 +71,10 @@ function KbPage() {
 
       <DataGrid<KnowledgeArticle>
         queryKey={["kb"]}
-        fetchPage={(p) => api.listKb(p)}
+        fetchPage={async (p) => {
+          const response = await api.get("/admin/knowledge-base", { params: p });
+          return response.data.data;
+        }}
         columns={columns}
         searchPlaceholder="Search articles…"
         initialSort={{ sortBy: "updatedAt", sortDir: "desc" }}
@@ -103,7 +109,7 @@ function KbForm({ initial, onClose }: { initial: Partial<KnowledgeArticle>; onCl
   });
 
   const save = useMutation({
-    mutationFn: (v: FormVals) => {
+    mutationFn: async (v: FormVals) => {
       const mediaAssets = (v.mediaUrls ?? "")
         .split("\n")
         .map((line) => line.trim())
@@ -113,7 +119,8 @@ function KbForm({ initial, onClose }: { initial: Partial<KnowledgeArticle>; onCl
           const type = t === "video" ? "video" : "image";
           return { type: type as "image" | "video", url: rest.join(":") };
         });
-      return api.saveKb({ _id: initial._id, ...v, mediaAssets });
+      const response = await api.post("/admin/knowledge-base", { _id: initial._id, ...v, mediaAssets });
+      return response.data.data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["kb"] }); toast.success("Article saved"); onClose(); },
   });
